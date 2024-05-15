@@ -19,4 +19,19 @@ describe('AppController', () => {
       expect(appController.getHello()).toBe('Hello World!');
     });
   });
+
+  describe('getTokenInfo', () => {
+    it('should return token info', () => {
+      const accessKey = 'access-key';
+      const req = {
+        headers: {
+          'x-access-key': accessKey,
+        },
+      };
+      expect(appController.getTokenInfo(req as any)).toEqual({
+        message: 'Token info',
+        accessKey,
+      });
+    });
+  });
 });

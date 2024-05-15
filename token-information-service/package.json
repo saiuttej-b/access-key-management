@@ -80,6 +80,18 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/$1"
+    },
+    "coveragePathIgnorePatterns": [
+      ".module.ts",
+      "src/main.ts",
+      "src/domain/",
+      "src/utils/request-store/",
+      "src/utils/mongoose-fn.ts",
+      "src/utils/env.ts",
+      "src/service-clients/"
+    ]
   }
 }
