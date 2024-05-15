@@ -58,7 +58,9 @@ export class AccessKeysService {
     if (accessKey.disabled) return accessKey;
 
     accessKey.disabled = true;
-    return this.accessKeyRepo.save(accessKey);
+    const response = await this.accessKeyRepo.save(accessKey);
+    await this.cacheService.set(key, response);
+    return response;
   }
 
   async findAccessKeyByKey(key: string) {
@@ -80,7 +82,6 @@ export class AccessKeysService {
       await this.cacheService.set(key, accessKey);
       return accessKey;
     } catch (error: any) {
-      console.error(error);
       throw new RpcException(error.response);
     }
   }

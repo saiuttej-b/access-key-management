@@ -45,7 +45,7 @@ export class AuthService {
     };
   }
 
-  private getAuthKeys() {
+  getAuthKeys() {
     const jwtSecret = this.configService.get<string>('JWT_SECRET');
     if (!jwtSecret) {
       this.logger.error('JWT_SECRET is not defined in the environment variables.');
@@ -74,9 +74,7 @@ export class AuthService {
       const payload = verify(accessToken, jwtSecret) as { id: string; createdAt: string };
 
       id = payload.id;
-    } catch (error) {
-      this.logger.error('Error while verifying the access token.', error);
-    }
+    } catch (error) {}
 
     if (!id) return;
 
