@@ -16,6 +16,7 @@ This service is responsible for managing access keys. It has the following endpo
 ### Users (users.controller.ts)
 
 - POST /api/users: This endpoint is responsible for creating a user.
+- GET /api/users: This endpoint is responsible for listing all users.
 
 ### Access Keys (access-keys.controller.ts)
 
@@ -68,7 +69,7 @@ MONGO_DB_HOST=
 MONGO_DB_USERNAME=
 MONGO_DB_PASSWORD=
 MONGO_DB_DATABASE=
-MONGO_DB_AUTO_INDEX=
+MONGO_DB_AUTO_INDEX=true
 
 REDIS_HOST=
 REDIS_PORT=

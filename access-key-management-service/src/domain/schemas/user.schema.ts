@@ -30,5 +30,6 @@ export class User {
 export const UserSchema = SchemaFactory.createForClass(User);
 UserSchema.index({ id: 1 }, { unique: true });
 UserSchema.index({ email: 1 }, { unique: true });
+UserSchema.index({ fullName: 'text', email: 'text' });
 
 export const convertUserDoc = convertDoc(User);

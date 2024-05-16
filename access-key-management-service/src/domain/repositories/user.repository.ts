@@ -14,4 +14,10 @@ export abstract class UserRepository {
   abstract findById(id: string): Promise<User | null>;
 
   abstract findByIds(ids: string[]): Promise<User[]>;
+
+  abstract find(query?: {
+    search?: string;
+    limit?: number;
+    skip?: number;
+  }): Promise<{ count: number; users: User[] }>;
 }

@@ -1,5 +1,13 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsNotEmpty, IsString, IsStrongPassword } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsStrongPassword,
+  Min,
+} from 'class-validator';
 
 export class UserCreateDto {
   @Transform(({ value }) => value?.trim())
@@ -22,4 +30,20 @@ export class UserCreateDto {
   @IsString()
   @IsNotEmpty()
   password: string;
+}
+
+export class UserGetDto {
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  limit?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  skip?: number;
 }

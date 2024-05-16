@@ -1,6 +1,6 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/user-auth.guard';
-import { UserCreateDto } from '../dtos/user.dto';
+import { UserCreateDto, UserGetDto } from '../dtos/user.dto';
 import { UsersService } from '../services/users.service';
 
 @JwtAuthGuard()
@@ -11,5 +11,10 @@ export class UsersController {
   @Post()
   createUser(@Body() reqBody: UserCreateDto) {
     return this.service.createUser(reqBody);
+  }
+
+  @Get()
+  findUsers(@Query() query: UserGetDto) {
+    return this.service.findUsers(query);
   }
 }

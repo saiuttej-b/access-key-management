@@ -2,7 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserRepository } from 'src/domain/repositories/user.repository';
 import { User } from 'src/domain/schemas/user.schema';
-import { UserCreateDto } from 'src/users/dtos/user.dto';
+import { UserCreateDto, UserGetDto } from 'src/users/dtos/user.dto';
 import { UsersService } from 'src/users/services/users.service';
 
 describe('UsersService', () => {
@@ -19,6 +19,7 @@ describe('UsersService', () => {
             existsByEmail: jest.fn(),
             instance: jest.fn(),
             create: jest.fn(),
+            find: jest.fn(),
           },
         },
       ],
@@ -88,6 +89,29 @@ describe('UsersService', () => {
         expect(user).toBeDefined();
         expect(user.id).toBe('id');
       });
+    });
+  });
+
+  describe('findUsers', () => {
+    const query: UserGetDto = {};
+
+    it('should call userRepo.find with query', async () => {
+      await service.findUsers(query);
+
+      expect(userRepo.find).toHaveBeenCalledWith(query);
+    });
+
+    it('should return users', async () => {
+      const users = [{}] as User[];
+
+      jest.spyOn(userRepo, 'find').mockResolvedValue({
+        count: users.length,
+        users: users,
+      });
+
+      const response = await service.findUsers(query);
+      expect(response.count).toBe(users.length);
+      expect(response.users).toEqual(users);
     });
   });
 });

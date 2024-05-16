@@ -3,7 +3,7 @@ import { plainToClass } from 'class-transformer';
 import { validate } from 'class-validator';
 import { User } from 'src/domain/schemas/user.schema';
 import { UsersController } from 'src/users/controllers/users.controller';
-import { UserCreateDto } from 'src/users/dtos/user.dto';
+import { UserCreateDto, UserGetDto } from 'src/users/dtos/user.dto';
 import { UsersService } from 'src/users/services/users.service';
 
 describe('UsersController', () => {
@@ -18,6 +18,7 @@ describe('UsersController', () => {
           provide: UsersService,
           useValue: {
             createUser: jest.fn(),
+            findUsers: jest.fn(),
           },
         },
       ],
@@ -172,6 +173,83 @@ describe('UsersController', () => {
             const errors = await validate(body);
 
             expect(errors).toHaveLength(0);
+          });
+        });
+      });
+    });
+  });
+
+  describe('findUsers', () => {
+    const query: UserGetDto = {
+      search: 'user',
+      limit: 10,
+      skip: 0,
+    };
+
+    describe('should call service.findUsers with the query', () => {
+      it('should call service.findUsers with the query', async () => {
+        jest.spyOn(service, 'findUsers').mockResolvedValue({ count: 0, users: [] });
+        await controller.findUsers(query);
+
+        expect(service.findUsers).toHaveBeenCalledWith(query);
+      });
+    });
+
+    describe('input validations', () => {
+      describe('limit', () => {
+        describe('when limit is not provided', () => {
+          it('should not throw an error', async () => {
+            const body = new UserGetDto();
+            Object.assign(body, { ...query, limit: null });
+
+            const errors = await validate(body);
+
+            expect(errors).toHaveLength(0);
+          });
+
+          describe('when limit is less than 1', () => {
+            it('should throw an error', async () => {
+              const body = new UserGetDto();
+              Object.assign(body, { ...query, limit: 0 });
+
+              const errors = await validate(body);
+
+              expect(errors).toHaveLength(1);
+
+              const error = errors.find((e) => e.property === 'limit');
+              expect(error?.constraints).toMatchObject({
+                min: expect.any(String),
+              });
+            });
+          });
+        });
+      });
+
+      describe('skip', () => {
+        describe('when skip is not provided', () => {
+          it('should not throw an error', async () => {
+            const body = new UserGetDto();
+            Object.assign(body, { ...query, skip: null });
+
+            const errors = await validate(body);
+
+            expect(errors).toHaveLength(0);
+          });
+
+          describe('when skip is less than 0', () => {
+            it('should throw an error', async () => {
+              const body = new UserGetDto();
+              Object.assign(body, { ...query, skip: -1 });
+
+              const errors = await validate(body);
+
+              expect(errors).toHaveLength(1);
+
+              const error = errors.find((e) => e.property === 'skip');
+              expect(error?.constraints).toMatchObject({
+                min: expect.any(String),
+              });
+            });
           });
         });
       });
