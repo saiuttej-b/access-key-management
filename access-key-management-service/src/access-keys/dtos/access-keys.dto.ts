@@ -48,3 +48,13 @@ export class AccessKeysGetDto {
   @Min(0)
   skip?: number;
 }
+
+export class ChangeAccessKeyStatusDto {
+  @IsNotEmpty()
+  @IsString()
+  key: string;
+
+  @IsBoolean()
+  @IsNotEmpty()
+  disabled: boolean;
+}

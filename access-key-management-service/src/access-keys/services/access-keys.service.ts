@@ -1,17 +1,19 @@
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
-import { Cache } from 'cache-manager';
 import { AccessKeyRepository } from 'src/domain/repositories/access-key.repository';
 import { UserRepository } from 'src/domain/repositories/user.repository';
-import { AccessKeyCreateDto, AccessKeyUpdateDto, AccessKeysGetDto } from '../dtos/access-keys.dto';
+import {
+  AccessKeyCreateDto,
+  AccessKeyUpdateDto,
+  AccessKeysGetDto,
+  ChangeAccessKeyStatusDto,
+} from '../dtos/access-keys.dto';
 
 @Injectable()
 export class AccessKeysService {
   constructor(
     private readonly userRepo: UserRepository,
     private readonly accessKeyRepo: AccessKeyRepository,
-    @Inject(CACHE_MANAGER) private readonly cacheService: Cache,
   ) {}
 
   async createAccesskey(reqBody: AccessKeyCreateDto) {
@@ -31,9 +33,7 @@ export class AccessKeysService {
     }
 
     Object.assign(accessKey, reqBody);
-    const response = await this.accessKeyRepo.save(accessKey);
-    await this.cacheService.set(key, response);
-    return response;
+    return this.accessKeyRepo.save(accessKey);
   }
 
   async deleteAccessKey(key: string) {
@@ -43,44 +43,38 @@ export class AccessKeysService {
     }
 
     await this.accessKeyRepo.delete(accessKey);
-    await this.cacheService.del(key);
     return {
       message: 'Access key deleted successfully',
     };
   }
 
-  async disableAccessKey(key: string) {
-    const accessKey = await this.accessKeyRepo.findByKey(key);
+  async changeAccessKeyStatus(body: ChangeAccessKeyStatusDto) {
+    const accessKey = await this.accessKeyRepo.findByKey(body.key);
     if (!accessKey) {
-      throw new NotFoundException('Access key not found');
+      throw new NotFoundException('Invalid access key');
     }
 
-    if (accessKey.disabled) return accessKey;
+    if (accessKey.disabled === body.disabled) return accessKey;
 
-    accessKey.disabled = true;
-    const response = await this.accessKeyRepo.save(accessKey);
-    await this.cacheService.set(key, response);
-    return response;
+    accessKey.disabled = body.disabled;
+    return this.accessKeyRepo.save(accessKey);
   }
 
   async findAccessKeyByKey(key: string) {
     const accessKey = await this.accessKeyRepo.findByKey(key);
     if (!accessKey) {
-      throw new NotFoundException('Access key not found');
+      throw new NotFoundException('Invalid access key');
     }
+
+    const user = await this.userRepo.findById(accessKey.userId);
+    if (user) accessKey.user = user;
 
     return accessKey;
   }
 
   async findCachedAccessKeyByKey(key: string) {
     try {
-      const accessKey = await this.accessKeyRepo.findByKey(key);
-      if (!accessKey) {
-        throw new NotFoundException('Invalid access key');
-      }
-
-      await this.cacheService.set(key, accessKey);
-      return accessKey;
+      return await this.findAccessKeyByKey(key);
     } catch (error: any) {
       throw new RpcException(error.response);
     }

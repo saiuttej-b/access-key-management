@@ -28,13 +28,6 @@ This service is responsible for managing access keys. It has the following endpo
 
 above endpoints are protected by JWT token, so you need to authenticate first to get the token. These apis can only be accessed by the admin user.
 
-### User Access Keys (user-access-keys.controller.ts)
-
-- GET /api/user-access-keys/:key: This endpoint is responsible for getting the access keys of a user.
-- POST /api/user-access-keys/:key/disable: This endpoint is responsible for disabling an access key of a user.
-
-above endpoints are for the end user to get their accesskey details and option to disable the access key.
-
 ## Token Information Service
 
 This service is responsible for providing information about the token. It has the following endpoints:

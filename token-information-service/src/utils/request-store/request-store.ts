@@ -1,8 +1,9 @@
 import { NextFunction, Request, Response } from 'express';
+import { AccessKey } from 'src/domain/repositories/access-key.repository';
 import { get, set, store } from './request-store-config';
 
 export const EXPRESS_REQUEST = 'EXPRESS_REQUEST';
-export const CURRENT_USER = 'CURRENT_USER';
+export const ACCESS_KEY_DETAILS = 'ACCESS_KEY_DETAILS';
 
 export const storeMiddleWare = (req: Request, _res: Response, next: NextFunction) => {
   store.run(new Map(), () => {
@@ -30,4 +31,12 @@ export function setExpressRequest(req: Request) {
 
 export function getExpressRequest() {
   return get<Request>(EXPRESS_REQUEST);
+}
+
+export function setAccessKeyDetails(details: AccessKey) {
+  set(ACCESS_KEY_DETAILS, details);
+}
+
+export function getAccessKeyDetails() {
+  return get<AccessKey>(ACCESS_KEY_DETAILS);
 }

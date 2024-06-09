@@ -9,7 +9,7 @@ import { Request, Response } from 'express';
 import { AccessKey, AccessKeyRepository } from './domain/repositories/access-key.repository';
 import { AccessLogRepository } from './domain/repositories/access-log.repository';
 import { AccessLog } from './domain/schemas/access-log.schema';
-import { setExpressRequest } from './utils/request-store';
+import { setAccessKeyDetails, setExpressRequest } from './utils/request-store';
 
 @Injectable()
 export class AccessKeyMiddleware implements NestMiddleware {
@@ -42,6 +42,7 @@ export class AccessKeyMiddleware implements NestMiddleware {
       await this.accessLogRepo.create(log);
     }
 
+    setAccessKeyDetails(accessKey);
     next();
   }
 

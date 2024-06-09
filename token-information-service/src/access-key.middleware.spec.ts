@@ -11,6 +11,7 @@ import * as requestStore from './utils/request-store';
 jest.mock('./utils/request-store', () => ({
   ...jest.requireActual('./utils/request-store'),
   setExpressRequest: jest.fn(),
+  setAccessKeyDetails: jest.fn(),
 }));
 
 describe('AccessKeyMiddleware', () => {
@@ -201,6 +202,7 @@ describe('AccessKeyMiddleware', () => {
         beforeEach(() => {
           jest.spyOn(accessKeyRepo, 'findByKey').mockResolvedValue(accessKey);
           jest.spyOn(accessLogRepo, 'countSuccessRequests').mockResolvedValue(9);
+          jest.spyOn(requestStore, 'setAccessKeyDetails').mockReturnValue();
         });
 
         it('should call next', async () => {

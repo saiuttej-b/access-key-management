@@ -1,6 +1,6 @@
-import { Controller, Get, Req } from '@nestjs/common';
-import { Request } from 'express';
+import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
+import { getAccessKeyDetails } from './utils/request-store';
 
 @Controller()
 export class AppController {
@@ -12,11 +12,10 @@ export class AppController {
   }
 
   @Get('token-info')
-  getTokenInfo(@Req() req: Request) {
-    const accessKey = req.headers['x-access-key'] as string;
+  getTokenInfo() {
     return {
       message: 'Token info',
-      accessKey,
+      accessKey: getAccessKeyDetails(),
     };
   }
 }

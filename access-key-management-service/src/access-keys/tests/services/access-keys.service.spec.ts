@@ -1,24 +1,22 @@
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { NotFoundException } from '@nestjs/common';
-import { RpcException } from '@nestjs/microservices';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Cache } from 'cache-manager';
 import {
   AccessKeyCreateDto,
   AccessKeyUpdateDto,
   AccessKeysGetDto,
+  ChangeAccessKeyStatusDto,
 } from 'src/access-keys/dtos/access-keys.dto';
 import { AccessKeysService } from 'src/access-keys/services/access-keys.service';
 import { AccessKeyRepository } from 'src/domain/repositories/access-key.repository';
 import { UserRepository } from 'src/domain/repositories/user.repository';
 import { AccessKey } from 'src/domain/schemas/access-key.schema';
+import { User } from 'src/domain/schemas/user.schema';
 import { generateId } from 'src/utils/fn';
 
 describe('AccessKeysService', () => {
   let service: AccessKeysService;
   let accessKeyRepo: AccessKeyRepository;
   let userRepo: UserRepository;
-  let cacheService: Cache;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -28,6 +26,7 @@ describe('AccessKeysService', () => {
           provide: UserRepository,
           useValue: {
             existsById: jest.fn(),
+            findById: jest.fn(),
           },
         },
         {
@@ -41,20 +40,12 @@ describe('AccessKeysService', () => {
             find: jest.fn(),
           },
         },
-        {
-          provide: CACHE_MANAGER,
-          useValue: {
-            set: jest.fn(),
-            del: jest.fn(),
-          },
-        },
       ],
     }).compile();
 
     service = module.get<AccessKeysService>(AccessKeysService);
     accessKeyRepo = module.get<AccessKeyRepository>(AccessKeyRepository);
     userRepo = module.get<UserRepository>(UserRepository);
-    cacheService = module.get<Cache>(CACHE_MANAGER);
 
     jest.clearAllMocks();
   });
@@ -64,7 +55,6 @@ describe('AccessKeysService', () => {
       expect(service).toBeDefined();
       expect(accessKeyRepo).toBeDefined();
       expect(userRepo).toBeDefined();
-      expect(cacheService).toBeDefined();
     });
   });
 
@@ -189,13 +179,6 @@ describe('AccessKeysService', () => {
           ...reqBody,
         });
       });
-
-      it('should call cacheService.set with key and response', () => {
-        expect(cacheService.set).toHaveBeenCalledWith(key, {
-          key,
-          ...reqBody,
-        });
-      });
     });
   });
 
@@ -240,15 +223,14 @@ describe('AccessKeysService', () => {
           message: 'Access key deleted successfully',
         });
       });
-
-      it('should call cacheService.del with key', () => {
-        expect(cacheService.del).toHaveBeenCalledWith(key);
-      });
     });
   });
 
-  describe('disableAccessKey', () => {
-    const key = generateId();
+  describe('changeAccessKeyStatus', () => {
+    const body: ChangeAccessKeyStatusDto = {
+      key: generateId(),
+      disabled: true,
+    };
 
     describe('when access key does not exist', () => {
       beforeEach(() => {
@@ -256,17 +238,32 @@ describe('AccessKeysService', () => {
       });
 
       it('should call accessKeyRepo.findByKey with key', async () => {
-        await service.disableAccessKey(key).catch(() => {});
+        await service.changeAccessKeyStatus(body).catch(() => {});
 
-        expect(accessKeyRepo.findByKey).toHaveBeenCalledWith(key);
+        expect(accessKeyRepo.findByKey).toHaveBeenCalledWith(body.key);
       });
 
       it('should throw NotFoundException', async () => {
-        await expect(service.disableAccessKey(key)).rejects.toThrow(NotFoundException);
+        await expect(service.changeAccessKeyStatus(body)).rejects.toThrow(NotFoundException);
       });
 
       it('should throw NotFoundException with message', async () => {
-        await expect(service.disableAccessKey(key)).rejects.toThrow('Access key not found');
+        await expect(service.changeAccessKeyStatus(body)).rejects.toThrow('Invalid access key');
+      });
+    });
+
+    describe("when access key exists and there is not change in it's status", () => {
+      beforeEach(async () => {
+        jest
+          .spyOn(accessKeyRepo, 'findByKey')
+          .mockResolvedValue({ key: body.key, disabled: body.disabled } as AccessKey);
+        jest.spyOn(accessKeyRepo, 'save').mockResolvedValue({ key: body.key } as AccessKey);
+
+        await service.changeAccessKeyStatus(body);
+      });
+
+      it('should not call accessKeyRepo.save', () => {
+        expect(accessKeyRepo.save).not.toHaveBeenCalled();
       });
     });
 
@@ -274,42 +271,20 @@ describe('AccessKeysService', () => {
       let response: AccessKey;
 
       beforeEach(async () => {
-        jest.spyOn(accessKeyRepo, 'findByKey').mockResolvedValue({ key } as AccessKey);
-        jest.spyOn(accessKeyRepo, 'save').mockResolvedValue({ key, disabled: true } as AccessKey);
+        jest.spyOn(accessKeyRepo, 'findByKey').mockResolvedValue({ key: body.key } as AccessKey);
+        jest
+          .spyOn(accessKeyRepo, 'save')
+          .mockResolvedValue({ key: body.key, disabled: body.disabled } as AccessKey);
 
-        response = await service.disableAccessKey(key);
+        response = await service.changeAccessKeyStatus(body);
       });
 
       it('should call accessKeyRepo.save with accessKey', () => {
-        expect(accessKeyRepo.save).toHaveBeenCalledWith({ key, disabled: true });
+        expect(accessKeyRepo.save).toHaveBeenCalledWith({ key: body.key, disabled: body.disabled });
       });
 
       it('should return accessKey', () => {
-        expect(response).toEqual({ key, disabled: true });
-      });
-
-      it('should call cacheService.set with key and response', () => {
-        expect(cacheService.set).toHaveBeenCalledWith(key, { key, disabled: true });
-      });
-    });
-
-    describe('when access key exists and is disabled previously', () => {
-      let response: AccessKey;
-
-      beforeEach(async () => {
-        jest
-          .spyOn(accessKeyRepo, 'findByKey')
-          .mockResolvedValue({ key, disabled: true } as AccessKey);
-
-        response = await service.disableAccessKey(key);
-      });
-
-      it('should not call accessKeyRepo.save', () => {
-        expect(accessKeyRepo.save).not.toHaveBeenCalled();
-      });
-
-      it('should return accessKey', () => {
-        expect(response).toEqual({ key, disabled: true });
+        expect(response).toEqual({ key: body.key, disabled: body.disabled });
       });
     });
   });
@@ -333,7 +308,7 @@ describe('AccessKeysService', () => {
       });
 
       it('should throw NotFoundException with message', async () => {
-        await expect(service.findAccessKeyByKey(key)).rejects.toThrow('Access key not found');
+        await expect(service.findAccessKeyByKey(key)).rejects.toThrow('Invalid access key');
       });
     });
 
@@ -342,12 +317,13 @@ describe('AccessKeysService', () => {
 
       beforeEach(async () => {
         jest.spyOn(accessKeyRepo, 'findByKey').mockResolvedValue({ key } as AccessKey);
+        jest.spyOn(userRepo, 'findById').mockResolvedValue({ id: generateId() } as User);
 
         response = await service.findAccessKeyByKey(key);
       });
 
       it('should return accessKey', () => {
-        expect(response).toEqual({ key });
+        expect(response).toEqual({ key, user: expect.any(Object) });
       });
     });
   });
@@ -366,31 +342,23 @@ describe('AccessKeysService', () => {
         expect(accessKeyRepo.findByKey).toHaveBeenCalledWith(key);
       });
 
-      it('should throw NotFoundException', async () => {
-        await expect(service.findCachedAccessKeyByKey(key)).rejects.toThrow(RpcException);
-      });
-
-      it('should throw NotFoundException with message', async () => {
+      it('should throw RpcException with message', async () => {
         await expect(service.findCachedAccessKeyByKey(key)).rejects.toThrow('Invalid access key');
       });
     });
 
     describe('when access key exists', () => {
-      let response: AccessKey;
+      let response: AccessKey | null;
 
       beforeEach(async () => {
         jest.spyOn(accessKeyRepo, 'findByKey').mockResolvedValue({ key } as AccessKey);
-        jest.spyOn(cacheService, 'set').mockResolvedValue();
+        jest.spyOn(userRepo, 'findById').mockResolvedValue({ id: generateId() } as User);
 
         response = await service.findCachedAccessKeyByKey(key);
       });
 
       it('should return accessKey', () => {
-        expect(response).toEqual({ key });
-      });
-
-      it('should call cacheService.set with key and response', () => {
-        expect(cacheService.set).toHaveBeenCalledWith(key, { key });
+        expect(response).toEqual({ key, user: expect.any(Object) });
       });
     });
   });

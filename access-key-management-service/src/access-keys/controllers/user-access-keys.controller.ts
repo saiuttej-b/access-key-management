@@ -1,19 +1,15 @@
-import { Controller, Get, Param, Post } from '@nestjs/common';
-import { MessagePattern } from '@nestjs/microservices';
+import { Controller } from '@nestjs/common';
+import { MessagePattern, Payload } from '@nestjs/microservices';
+import { ChangeAccessKeyStatusDto } from '../dtos/access-keys.dto';
 import { AccessKeysService } from '../services/access-keys.service';
 
 @Controller('user-access-keys')
 export class UserAccessKeysController {
   constructor(private readonly service: AccessKeysService) {}
 
-  @Get(':key')
-  findAccessKeyByKey(@Param('key') key: string) {
-    return this.service.findAccessKeyByKey(key);
-  }
-
-  @Post(':key/disable')
-  disableAccessKey(@Param('key') key: string) {
-    return this.service.disableAccessKey(key);
+  @MessagePattern('changeAccessKeyStatus')
+  changeAccessKeyStatus(@Payload() body: ChangeAccessKeyStatusDto) {
+    return this.service.changeAccessKeyStatus(body);
   }
 
   @MessagePattern('getAccessKeyDetails')

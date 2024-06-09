@@ -1,5 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { Cache } from 'cache-manager';
 import { FilterQuery, Model } from 'mongoose';
 import { generateId } from 'src/utils/fn';
 import { AccessKeyRepository } from '../repositories/access-key.repository';
@@ -10,6 +12,7 @@ import { AccessKey, convertAccessKeyDoc } from '../schemas/access-key.schema';
 export class MongoDbAccessKeyRepository implements AccessKeyRepository {
   constructor(
     @InjectModel(AccessKey.name) private readonly accessKeyModel: Model<AccessKey>,
+    @Inject(CACHE_MANAGER) private readonly cacheService: Cache,
     private readonly userRepo: UserRepository,
   ) {}
 
@@ -24,7 +27,9 @@ export class MongoDbAccessKeyRepository implements AccessKeyRepository {
     if (!accessKey.key) accessKey.key = generateId();
 
     const record = await this.accessKeyModel.create(accessKey);
-    return convertAccessKeyDoc(record)!;
+    const result = convertAccessKeyDoc(record)!;
+    await this.cacheService.set(result.key, result);
+    return result;
   }
 
   async save(accessKey: AccessKey): Promise<AccessKey> {
@@ -37,14 +42,20 @@ export class MongoDbAccessKeyRepository implements AccessKeyRepository {
     if (!previous.isModified()) return accessKey;
 
     const record = await previous.save();
-    return convertAccessKeyDoc(record)!;
+    const result = convertAccessKeyDoc(record)!;
+    await this.cacheService.set(result.key, result);
+    return result;
   }
 
   async delete(accessKey: AccessKey): Promise<void> {
     await this.accessKeyModel.deleteOne({ key: accessKey.key }).exec();
+    await this.cacheService.del(accessKey.key);
   }
 
   async findByKey(key: string): Promise<AccessKey | null> {
+    const cachedAccessKey = await this.cacheService.get<AccessKey>(key);
+    if (cachedAccessKey) return cachedAccessKey;
+
     const record = await this.accessKeyModel.findOne({ key }).exec();
     return convertAccessKeyDoc(record);
   }

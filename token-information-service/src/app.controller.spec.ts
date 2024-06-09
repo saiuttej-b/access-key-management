@@ -1,6 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AccessKey } from './domain/repositories/access-key.repository';
+import * as store from './utils/request-store';
+
+jest.mock('./utils/request-store', () => ({
+  ...jest.requireActual('./utils/request-store'),
+  getAccessKeyDetails: jest.fn().mockReturnValue({}),
+}));
 
 describe('AppController', () => {
   let appController: AppController;
@@ -21,16 +28,11 @@ describe('AppController', () => {
   });
 
   describe('getTokenInfo', () => {
+    jest.spyOn(store, 'getAccessKeyDetails').mockReturnValue({ key: 'key' } as AccessKey);
     it('should return token info', () => {
-      const accessKey = 'access-key';
-      const req = {
-        headers: {
-          'x-access-key': accessKey,
-        },
-      };
-      expect(appController.getTokenInfo(req as any)).toEqual({
+      expect(appController.getTokenInfo()).toEqual({
         message: 'Token info',
-        accessKey,
+        accessKey: expect.any(Object),
       });
     });
   });
